@@ -104,21 +104,32 @@ class KoofrClient:
         self._mount_id: str | None = None
         self._mount_name: str = ""
 
-    def _get(self, path: str, max_retries: int = 5, **kwargs) -> dict:
+    def _get(self, path: str, **kwargs) -> dict:
+        max_429_retries = 20  # ~1 hour total with backoff
         resp = self.session.get(f"{self.base}{path}", **kwargs)
+
+        # Handle 429 rate limit with backoff
         if resp.status_code == 429:
-            for attempt in range(max_retries):
-                wait = 30 * (attempt + 1)
-                print(f"[{APP_NAME}] Rate limited. Waiting {wait}s (attempt {attempt+1}/{max_retries})...")
+            for attempt in range(max_429_retries):
+                wait = 60 * (attempt + 1)
+                print(f"[{APP_NAME}] Koofr rate limited (too many login retries). "
+                      f"Waiting {wait}s (attempt {attempt+1}/{max_429_retries})...")
+                print(f"[{APP_NAME}] Tip: visiting https://app.koofr.net in a browser "
+                      f"may reset the login retry counter.")
                 time.sleep(wait)
                 resp = self.session.get(f"{self.base}{path}", **kwargs)
                 if resp.status_code != 429:
                     break
             else:
-                sys.exit("ERROR: Koofr rate limit persists after retries — "
-                         "wait a few minutes and try again")
+                sys.exit("ERROR: Koofr rate limit persists after retries.\n"
+                         "  → Log into https://app.koofr.net in your browser to reset.\n"
+                         "  → Or wait ~1 hour and try again.")
+
         if resp.status_code == 401:
-            sys.exit("ERROR: Koofr auth failed — check your email and app password")
+            sys.exit("ERROR: Koofr auth failed — check your email and app password\n"
+                     "  KOOFR_EMAIL and KOOFR_PASSWORD in .env must match an app password\n"
+                     "  Generate one at: https://app.koofr.net/app/admin/preferences/password")
+
         resp.raise_for_status()
         return resp.json()
 
