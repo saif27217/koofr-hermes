@@ -131,6 +131,19 @@ class KoofrClient:
                      "  Generate one at: https://app.koofr.net/app/admin/preferences/password")
 
         resp.raise_for_status()
+        ct = resp.headers.get("Content-Type", "")
+        if "ndjson" in ct:
+            # NDJSON: one JSON object per line, accumulate into a dict
+            # that has a "files" key with the list of all items
+            files: list[dict] = []
+            for line in resp.iter_lines(decode_unicode=True):
+                line = line.strip()
+                if line:
+                    obj = json.loads(line)
+                    entry = obj.get("file", obj)
+                    entry["path"] = obj.get("path", "")
+                    files.append(entry)
+            return {"files": files}
         return resp.json()
 
     def _content_get(self, path: str, **kwargs) -> bytes:
