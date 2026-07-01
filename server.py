@@ -87,59 +87,43 @@ config = Config()
 # ── Koofr API Client ──────────────────────────────────────────────────────────
 
 class KoofrClient:
-    """Thin wrapper around Koofr REST v2 API (Token auth).
+    """Koofr REST v2.1 API client (Basic Auth with app password).
 
-    Auth flow:
-      1. GET /token with X-Koofr-Email + X-Koofr-Password headers
-      2. Response returns X-Koofr-Token in headers
-      3. All subsequent requests use Authorization: Token <token>
+    Auth: HTTP Basic Auth with email + app-specific password.
+    Base URL: https://app.koofr.net
+    API version: 2.1 (paths under /api/v2.1/ and /content/api/v2.1/)
     """
 
     def __init__(self, base_url: str, email: str, password: str):
         self.base = base_url.rstrip("/")
-        self.email = email
-        self.password = password
+        self.api_prefix = "/api/v2.1"
+        self.content_prefix = "/content/api/v2.1"
         self.session = requests.Session()
+        self.session.auth = (email, password)
         self.session.headers["User-Agent"] = f"{APP_NAME}/{VERSION}"
         self._mount_id: str | None = None
         self._mount_name: str = ""
-        self._token: str | None = None
-
-    def _ensure_token(self):
-        """Fetch or refresh the auth token."""
-        if self._token:
-            return
-        resp = self.session.get(
-            f"{self.base}/token",
-            headers={
-                "X-Koofr-Email": self.email,
-                "X-Koofr-Password": self.password,
-            },
-        )
-        if resp.status_code == 401:
-            sys.exit("ERROR: Koofr auth failed — check your email and app password")
-        resp.raise_for_status()
-        self._token = resp.headers.get("X-Koofr-Token", "")
-        if not self._token:
-            sys.exit("ERROR: Koofr did not return a token")
-        self.session.headers["Authorization"] = f"Token {self._token}"
 
     def _get(self, path: str, **kwargs) -> dict:
-        self._ensure_token()
         resp = self.session.get(f"{self.base}{path}", **kwargs)
         if resp.status_code == 401:
-            # Token might have expired; retry once
-            self._token = None
-            self._ensure_token()
-            resp = self.session.get(f"{self.base}{path}", **kwargs)
+            sys.exit("ERROR: Koofr auth failed — check your email and app password")
+        if resp.status_code == 429:
+            sys.exit("ERROR: Koofr rate limit hit — wait a minute and retry")
         resp.raise_for_status()
         return resp.json()
+
+    def _content_get(self, path: str, **kwargs) -> bytes:
+        """Fetch file content (raw bytes)."""
+        resp = self.session.get(f"{self.base}{path}", **kwargs)
+        resp.raise_for_status()
+        return resp.content
 
     @property
     def mount_id(self) -> str:
         if self._mount_id:
             return self._mount_id
-        data = self._get("/api/v2/mounts")
+        data = self._get(f"{self.api_prefix}/mounts")
         for m in data.get("mounts", []):
             if m.get("isPrimary"):
                 self._mount_id = m["id"]
@@ -149,15 +133,33 @@ class KoofrClient:
             return self._mount_id
         raise RuntimeError("No mounts found in Koofr account")
 
-    def get_file_tree(self, path: str = "/") -> dict:
-        """Fetch the full recursive file tree from Koofr."""
-        return self._get(f"/api/v2/mounts/{self.mount_id}/files/tree",
-                         params={"path": path})
+    def get_file_list(self, mount_id: str, path: str = "/") -> list[dict]:
+        """List files in a directory (non-recursive)."""
+        data = self._get(
+            f"{self.api_prefix}/mounts/{mount_id}/files/list",
+            params={"path": path},
+        )
+        return data.get("files", [])
+
+    def get_file_list_recursive(self, mount_id: str, path: str = "/") -> list[dict]:
+        """Fetch ALL files recursively from Koofr in a single API call."""
+        data = self._get(
+            f"{self.content_prefix}/mounts/{mount_id}/files/listrecursive",
+            params={"path": path},
+        )
+        return data.get("files", [])
+
+    def get_file_info(self, mount_id: str, path: str) -> dict:
+        """Get file/folder metadata."""
+        return self._get(
+            f"{self.api_prefix}/mounts/{mount_id}/files/info",
+            params={"path": path},
+        )
 
     def check_connection(self) -> str:
         """Verify credentials work and return the mount name."""
         mid = self.mount_id
-        mount = self._get(f"/api/v2/mounts/{mid}")
+        mount = self._get(f"{self.api_prefix}/mounts/{mid}")
         return mount.get("name", mid)
 
 
@@ -326,48 +328,36 @@ def sanitize_fts5(query: str) -> str:
     return " AND ".join(f'"{t}"*' if len(t) > 2 else f'"{t}"' for t in terms)
 
 
-# ── Tree Flattening ──────────────────────────────────────────────────────────
-
-def flatten_tree(tree: dict, parent_path: str = "/") -> list[dict]:
-    """Recursively flatten Koofr's nested file tree into a flat list."""
-    rows: list[dict] = []
-    name = tree.get("name", "")
-    ftype = tree.get("type", "dir")
-    path_val = f"{parent_path.rstrip('/')}/{name}" if name else parent_path
-    path_val = path_val.replace("//", "/")
-
-    row = {
-        "path": path_val,
-        "name": name,
-        "type": ftype,
-        "content_type": tree.get("contentType", ""),
-        "size": tree.get("size", 0),
-        "modified": tree.get("modified", 0),
-        "hash_val": tree.get("hash", ""),
-        "parent_path": parent_path,
-    }
-    rows.append(row)
-
-    for child in tree.get("children", []):
-        rows.extend(flatten_tree(child, path_val))
-
-    return rows
-
+# ── Catalog Refresh ──────────────────────────────────────────────────────────
 
 def refresh_catalog(client: KoofrClient, db: Database) -> dict:
     """Fetch the full tree from Koofr and rebuild the SQLite cache."""
     start = time.time()
-    print(f"[{APP_NAME}] Fetching file tree from Koofr...")
-    tree = client.get_file_tree("/")
+    print(f"[{APP_NAME}] Fetching file list from Koofr...")
+    files = client.get_file_list_recursive(client.mount_id, "/")
 
-    print(f"[{APP_NAME}] Flattening tree...")
-    items = flatten_tree(tree)
-
-    print(f"[{APP_NAME}] Writing {len(items)} items to database...")
+    print(f"[{APP_NAME}] Processing {len(files)} items...")
     db.clear_files()
     db.conn.execute("BEGIN")
-    for item in items:
-        db.upsert_file(**item)
+    for item in files:
+        path_val = item.get("path", "")
+        name = item.get("name", "")
+        ftype = item.get("type", "file")
+        # Parse parent path from full path
+        parent_path = path_val.rsplit("/", 1)[0] if "/" in path_val else "/"
+        if parent_path == "":
+            parent_path = "/"
+
+        db.upsert_file(
+            path=path_val,
+            name=name,
+            ftype=ftype,
+            content_type=item.get("contentType", ""),
+            size=item.get("size", 0),
+            modified=item.get("modified", 0),
+            hash_val=item.get("hash", ""),
+            parent_path=parent_path,
+        )
     db.conn.commit()
 
     elapsed = time.time() - start
@@ -377,7 +367,7 @@ def refresh_catalog(client: KoofrClient, db: Database) -> dict:
 
     return {
         "ok": True,
-        "items_written": len(items),
+        "items_written": len(files),
         "files": db.count_files(),
         "dirs": db.count_dirs(),
         "elapsed_s": round(elapsed, 2),
