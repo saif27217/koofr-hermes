@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Koofr Hermes</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text2: #8b949e;
+  --accent: #58a6ff;
+  --green: #3fb950;
+  --orange: #d29922;
+  --red: #f85149;
+  --radius: 6px;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* Header */
+.header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.header h1 {
+  font-size: 18px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.header h1 span { color: var(--text2); font-weight: 400; font-size: 14px; }
+.status { font-size: 12px; color: var(--text2); margin-left: auto; }
+.status .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+.status .dot.online { background: var(--green); }
+.status .dot.offline { background: var(--red); }
+
+/* Search */
+.search-bar {
+  display: flex;
+  gap: 8px;
+  padding: 12px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.search-bar input[type=text] {
+  flex: 1;
+  min-width: 200px;
+  padding: 8px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 14px;
+}
+.search-bar input[type=text]:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+.filter-group { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+.filter-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface2);
+  color: var(--text2);
+  cursor: pointer;
+  font-size: 12px;
+  transition: all .15s;
+}
+.filter-btn:hover { border-color: var(--accent); color: var(--text); }
+.filter-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.filter-count { font-size: 11px; color: var(--text2); padding: 0 8px; }
+
+/* Breadcrumbs */
+.breadcrumbs {
+  padding: 8px 20px;
+  font-size: 13px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.breadcrumbs a { color: var(--text2); font-size: 13px; }
+.breadcrumbs a:hover { color: var(--text); }
+.breadcrumbs .sep { color: var(--border); margin: 0 2px; }
+
+/* Content area */
+.content { padding: 12px 20px; }
+
+/* Stats bar */
+.stats-bar {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--text2);
+  padding: 8px 0;
+  flex-wrap: wrap;
+}
+.stat-item { display: flex; align-items: center; gap: 4px; }
+.stat-val { color: var(--text); font-weight: 500; }
+
+/* Table / grid */
+.file-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.file-table th {
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text2);
+  font-weight: 500;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  user-select: none;
+}
+.file-table td {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.file-table tr:hover td { background: var(--surface); }
+.file-table tr.dir-row td { font-weight: 500; }
+.file-icon { margin-right: 6px; font-size: 14px; }
+.file-name { max-width: 300px; }
+.dir-name { max-width: 300px; }
+.file-table .col-size { text-align: right; width: 80px; }
+.file-table .col-date { width: 160px; color: var(--text2); }
+.file-table .col-type { width: 120px; color: var(--text2); font-size: 11px; }
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  padding: 16px 0;
+  flex-wrap: wrap;
+}
+.page-btn {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface2);
+  color: var(--text2);
+  cursor: pointer;
+  font-size: 12px;
+}
+.page-btn:hover:not(.active):not(:disabled) { border-color: var(--accent); }
+.page-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.page-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* File detail modal */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,.6);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100;
+}
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 24px;
+  max-width: 480px;
+  width: 90%;
+  position: relative;
+}
+.modal h3 { margin-bottom: 12px; font-size: 16px; }
+.modal table { width: 100%; font-size: 13px; }
+.modal table td:first-child { color: var(--text2); padding-right: 12px; white-space: nowrap; }
+.modal table td:last-child { word-break: break-all; }
+.modal-close {
+  position: absolute; top: 8px; right: 12px;
+  background: none; border: none; color: var(--text2); font-size: 20px;
+  cursor: pointer;
+}
+.modal-close:hover { color: var(--text); }
+
+/* Loading / empty */
+.loading { color: var(--text2); text-align: center; padding: 40px; font-size: 14px; }
+.empty-state { color: var(--text2); text-align: center; padding: 60px 20px; }
+.empty-state h3 { color: var(--text); margin-bottom: 8px; }
+.error-state { color: var(--red); text-align: center; padding: 40px; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .header { flex-direction: column; align-items: stretch; }
+  .status { margin-left: 0; }
+  .file-table .col-date, .file-table .col-type { display: none; }
+  .search-bar { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>📁 Koofr Hermes <span id="version"></span></h1>
+  <div class="status" id="statusBar">
+    <span class="dot offline" id="statusDot"></span>
+    <span id="statusText">Connecting...</span>
+  </div>
+</div>
+
+<div class="search-bar">
+  <input type="text" id="searchInput" placeholder="Search files by name..." autocomplete="off">
+  <div class="filter-group" id="filterGroup">
+    <button class="filter-btn active" data-type="all">All</button>
+    <button class="filter-btn" data-type="video">🎬 Video</button>
+    <button class="filter-btn" data-type="image">🖼 Image</button>
+    <button class="filter-btn" data-type="audio">🎵 Audio</button>
+    <button class="filter-btn" data-type="document">📄 Document</button>
+    <button class="filter-btn" data-type="archive">📦 Archive</button>
+    <span class="filter-count" id="filterCount"></span>
+  </div>
+</div>
+
+<div class="breadcrumbs" id="breadcrumbs">
+  <a href="#" onclick="showBrowse('/')">Koofr</a>
+</div>
+
+<div class="content" id="content">
+  <div class="loading">Loading catalog...</div>
+</div>
+
+<div class="pagination" id="pagination"></div>
+
+<!-- File modal -->
+<div id="fileModal" class="modal-overlay" style="display:none" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <h3 id="modalTitle"></h3>
+    <table id="modalBody"></table>
+  </div>
+</div>
+
+<script>
+// ── State ──
+let state = {
+  view: 'browse',           // 'browse' | 'search'
+  path: '/',
+  query: '',
+  type: 'all',
+  page: 1,
+  perPage: 50,
+  total: 0,
+  currentDir: null,
+};
+
+// ── Helpers ──
+function fmtSize(bytes) {
+  if (!bytes) return '-';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let i = 0;
+  let v = bytes;
+  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+  return v.toFixed(i > 0 ? 1 : 0) + ' ' + units[i];
+}
+
+function fmtDate(ms) {
+  if (!ms) return '-';
+  const d = new Date(ms);
+  return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+}
+
+function fmtType(ct) {
+  if (!ct) return '-';
+  const map = {
+    'video/mp4': 'MP4', 'video/x-matroska': 'MKV', 'video/avi': 'AVI',
+    'video/quicktime': 'MOV', 'video/webm': 'WebM', 'video/x-ms-wmv': 'WMV',
+    'image/jpeg': 'JPEG', 'image/png': 'PNG', 'image/gif': 'GIF',
+    'image/webp': 'WebP', 'image/svg+xml': 'SVG',
+    'audio/mpeg': 'MP3', 'audio/ogg': 'OGG', 'audio/wav': 'WAV',
+    'audio/flac': 'FLAC', 'audio/aac': 'AAC',
+    'application/pdf': 'PDF',
+  };
+  return map[ct] || ct.split('/').pop() || '-';
+}
+
+function fileIcon(file) {
+  const ct = (file.content_type || '').toLowerCase();
+  if (ct.startsWith('video/')) return '🎬';
+  if (ct.startsWith('image/')) return '🖼';
+  if (ct.startsWith('audio/')) return '🎵';
+  if (ct.startsWith('application/pdf')) return '📕';
+  if (ct.startsWith('application/zip') || ct.startsWith('application/x-')) return '📦';
+  if (ct.startsWith('text/')) return '📝';
+  return '📄';
+}
+
+function dirIcon() { return '📁'; }
+
+// ── API calls ──
+async function api(url) {
+  const resp = await fetch(url);
+  const data = await resp.json();
+  if (!data.ok) throw new Error(data.error || 'API error');
+  return data;
+}
+
+async function apiPost(url) {
+  const resp = await fetch(url, { method: 'POST' });
+  const data = await resp.json();
+  if (!data.ok) throw new Error(data.error || 'API error');
+  return data;
+}
+
+// ── Render functions ──
+
+function renderBrowse(data) {
+  state.currentDir = data.current || null;
+  state.total = data.subdirs.length + data.files.length;
+
+  const html = [];
+
+  // Stats
+  html.push(`<div class="stats-bar">
+    <span class="stat-item">📁 <span class="stat-val">${data.subdirs.length}</span> folders</span>
+    <span class="stat-item">📄 <span class="stat-val">${data.files.length}</span> files</span>
+    ${data.current ? `<span class="stat-item">📍 ${data.current.name}</span>` : ''}
+  </div>`);
+
+  html.push('<table class="file-table"><thead><tr>');
+  html.push('<th style="width:40px"></th><th>Name</th><th class="col-size">Size</th>');
+  html.push('<th class="col-date">Modified</th><th class="col-type">Type</th>');
+  html.push('</tr></thead><tbody>');
+
+  // Subdirectories first
+  for (const dir of data.subdirs) {
+    html.push(`<tr class="dir-row" onclick="showBrowse('${esc(dir.path)}')" style="cursor:pointer">
+      <td>${dirIcon()}</td>
+      <td class="dir-name"><a href="#">${esc(dir.name || '(root)')}</a></td>
+      <td class="col-size">-</td>
+      <td class="col-date">${fmtDate(dir.modified)}</td>
+      <td class="col-type">folder</td>
+    </tr>`);
+  }
+
+  // Files
+  for (const f of data.files) {
+    const icon = fileIcon(f);
+    html.push(`<tr onclick="showFile('${esc(f.path)}')" style="cursor:pointer">
+      <td>${icon}</td>
+      <td class="file-name">${esc(f.name)}</td>
+      <td class="col-size">${fmtSize(f.size)}</td>
+      <td class="col-date">${fmtDate(f.modified)}</td>
+      <td class="col-type">${fmtType(f.content_type)}</td>
+    </tr>`);
+  }
+
+  html.push('</tbody></table>');
+  if (data.subdirs.length === 0 && data.files.length === 0) {
+    html.push('<div class="empty-state"><h3>Empty directory</h3><p>Nothing here yet</p></div>');
+  }
+
+  document.getElementById('content').innerHTML = html.join('');
+  document.getElementById('pagination').innerHTML = '';
+  document.getElementById('filterCount').textContent = '';
+
+  // breadcrumbs
+  renderBreadcrumbs(data.path);
+}
+
+function renderBreadcrumbs(path) {
+  const parts = path.split('/').filter(Boolean);
+  let html = '<a href="#" onclick="showBrowse(\'/\')">Koofr</a>';
+  let acc = '';
+  for (const p of parts) {
+    acc += '/' + p;
+    html += `<span class="sep">/</span><a href="#" onclick="showBrowse('${esc(acc)}')">${esc(p)}</a>`;
+  }
+  document.getElementById('breadcrumbs').innerHTML = html;
+}
+
+function renderSearch(data) {
+  state.total = data.total;
+  document.getElementById('filterCount').textContent =
+    `${data.total} result${data.total !== 1 ? 's' : ''}`;
+
+  const html = [];
+
+  if (data.total === 0) {
+    html.push('<div class="empty-state"><h3>No results</h3>');
+    html.push('<p>Try a different search term or filter</p></div>');
+    document.getElementById('content').innerHTML = html.join('');
+    document.getElementById('pagination').innerHTML = '';
+    return;
+  }
+
+  html.push(`<div class="stats-bar">
+    <span class="stat-item">📄 ${data.total} file${data.total !== 1 ? 's' : ''} found</span>
+  </div>`);
+
+  html.push('<table class="file-table"><thead><tr>');
+  html.push('<th style="width:40px"></th><th>Name</th><th class="col-size">Size</th>');
+  html.push('<th class="col-date">Modified</th><th class="col-type">Type</th>');
+  html.push('</tr></thead><tbody>');
+
+  for (const f of data.results) {
+    const icon = fileIcon(f);
+    const dir = f.parent_path || '/';
+    html.push(`<tr onclick="showFile('${esc(f.path)}')" style="cursor:pointer">
+      <td>${icon}</td>
+      <td class="file-name">
+        <span style="color:var(--text2);font-size:11px">${esc(dir)}/</span><br>
+        ${esc(f.name)}
+      </td>
+      <td class="col-size">${fmtSize(f.size)}</td>
+      <td class="col-date">${fmtDate(f.modified)}</td>
+      <td class="col-type">${fmtType(f.content_type)}</td>
+    </tr>`);
+  }
+
+  html.push('</tbody></table>');
+  document.getElementById('content').innerHTML = html.join('');
+
+  // Pagination
+  if (data.pages > 1) renderPagination(data);
+}
+
+function renderPagination(data) {
+  let html = '';
+  const p = data.page;
+  const total = data.pages;
+
+  html += `<button class="page-btn" onclick="goSearch(1)" ${p<=1?'disabled':''}>&#xAB;</button>`;
+
+  let start = Math.max(1, p - 3);
+  let end = Math.min(total, p + 3);
+  if (start > 1) html += '<span class="page-btn" disabled>...</span>';
+  for (let i = start; i <= end; i++) {
+    html += `<button class="page-btn ${i===p?'active':''}" onclick="goSearch(${i})">${i}</button>`;
+  }
+  if (end < total) html += '<span class="page-btn" disabled>...</span>';
+
+  html += `<button class="page-btn" onclick="goSearch(${total})" ${p>=total?'disabled':''}>&#xBB;</button>`;
+  document.getElementById('pagination').innerHTML = html;
+}
+
+// ── Navigation ──
+
+async function showBrowse(path) {
+  state.view = 'browse';
+  state.path = path;
+  document.getElementById('searchInput').value = '';
+  document.getElementById('content').innerHTML = '<div class="loading">Loading...</div>';
+  document.getElementById('pagination').innerHTML = '';
+  document.getElementById('filterCount').textContent = '';
+
+  try {
+    const data = await api(`/api/browse?path=${encodeURIComponent(path)}`);
+    renderBrowse(data);
+  } catch (e) {
+    document.getElementById('content').innerHTML =
+      `<div class="error-state">Error: ${esc(e.message)}</div>`;
+  }
+}
+
+async function goSearch(page) {
+  state.view = 'search';
+  state.page = page;
+  const q = state.query;
+  const t = state.type;
+
+  document.getElementById('content').innerHTML = '<div class="loading">Searching...</div>';
+
+  try {
+    const data = await api(`/api/search?q=${encodeURIComponent(q)}&type=${t}&page=${page}&per_page=${state.perPage}`);
+    renderSearch(data);
+  } catch (e) {
+    document.getElementById('content').innerHTML =
+      `<div class="error-state">Error: ${esc(e.message)}</div>`;
+  }
+}
+
+async function doSearch() {
+  const q = document.getElementById('searchInput').value.trim();
+  if (!q) {
+    showBrowse('/');
+    return;
+  }
+  state.query = q;
+  state.page = 1;
+  state.view = 'search';
+  goSearch(1);
+}
+
+async function showFile(path) {
+  try {
+    const data = await api(`/api/file?path=${encodeURIComponent(path)}`);
+    const f = data.file;
+    document.getElementById('modalTitle').textContent = f.name;
+    document.getElementById('modalBody').innerHTML = `
+      <tr><td>Type</td><td>${fmtType(f.content_type)}</td></tr>
+      <tr><td>Size</td><td>${fmtSize(f.size)}</td></tr>
+      <tr><td>Modified</td><td>${fmtDate(f.modified)}</td></tr>
+      <tr><td>Path</td><td style="font-size:12px;color:var(--text2)">${esc(f.path)}</td></tr>
+      <tr><td>MD5</td><td style="font-size:11px;font-family:monospace">${f.hash || '-'}</td></tr>
+    `;
+    document.getElementById('fileModal').style.display = 'flex';
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+function closeModal(e) {
+  document.getElementById('fileModal').style.display = 'none';
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ── Initialise ──
+
+async function init() {
+  // Status
+  try {
+    const st = await api('/api/status');
+    document.getElementById('version').textContent = 'v' + st.version;
+    document.getElementById('statusDot').className = st.configured ? 'dot online' : 'dot offline';
+    document.getElementById('statusText').textContent =
+      st.configured ? `Online · ${st.mount_name} · ${st.files} files, ${st.dirs} dirs` : 'Not configured';
+  } catch (e) {
+    document.getElementById('statusText').textContent = 'Offline';
+  }
+
+  // Search handlers
+  let searchTimer;
+  document.getElementById('searchInput').addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(doSearch, 300);
+  });
+  document.getElementById('searchInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { clearTimeout(searchTimer); doSearch(); }
+  });
+
+  // Filter buttons
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.type = btn.dataset.type;
+      if (state.view === 'search' && state.query) {
+        goSearch(1);
+      } else if (state.view === 'browse') {
+        // Refresh browse if we had one
+        showBrowse(state.path);
+      }
+    });
+  });
+
+  // Load browse view
+  showBrowse('/');
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
