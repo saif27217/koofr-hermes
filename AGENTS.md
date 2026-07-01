@@ -154,7 +154,8 @@ cp .env.example .env
 # Edit .env:
 #   KOOFR_EMAIL=<your-email>
 #   KOOFR_PASSWORD=<app-password, not main password>
-```
+#   KOOFR_HOST=0.0.0.0              # bind all interfaces (for Tailscale)
+#   # KOOFR_HOST=127.0.0.1          # localhost only (default, safer)
 
 ### Deploy to Termux
 ```bash
@@ -171,6 +172,43 @@ Server starts on `http://127.0.0.1:5000`.
 ```bash
 # From VPS to Termux (port 5000)
 ssh -L 5000:127.0.0.1:5000 -p 8022 sak@<termux-tailscale-ip>
+```
+
+## Tailscale Access
+
+The server runs on Termux with Tailscale (`100.x.x.x`). To make it reachable from
+other devices on your Tailscale network without SSH tunnels:
+
+### Steps
+
+1. **Bind to all interfaces** by setting `KOOFR_HOST=0.0.0.0` in `.env`:
+   ```bash
+   echo "KOOFR_HOST=0.0.0.0" >> ~/koofr-hermes/.env
+   ```
+
+2. **Restart the server**:
+   ```bash
+   pkill -f "python server.py"
+   bash ~/koofr-hermes/run.sh
+   ```
+
+3. **Access from any Tailscale device** at:
+   ```
+   http://<termux-tailscale-ip>:5000
+   ```
+   Find the Tailscale IP with `tailscale ip -4` on Termux.
+
+### Why this works
+- Tailscale is a private mesh VPN — only devices in your tailnet can reach this IP
+- No SSH tunnel, no Cloudflare, no public exposure
+- Still behind Tailscale ACLs if you've set them up
+- The VPS in the same tailnet reaches it directly at `100.x.x.x:5000`
+
+### Pitfall: `python-dotenv` dependency
+The server calls `load_dotenv()` at import time to read `.env`. Without it,
+you'd need `source .env` before starting. Install with:
+```bash
+pip install python-dotenv
 ```
 
 ## Common Operations
