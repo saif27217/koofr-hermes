@@ -23,11 +23,16 @@ import sqlite3
 import hashlib
 import pathlib
 import threading
+from dotenv import load_dotenv
+
+load_dotenv()  # Load .env file if present
+
 import traceback
+
+import requests
 from datetime import datetime, timezone
 from functools import wraps
 
-import requests
 from flask import Flask, g, jsonify, request, render_template, send_from_directory
 
 # ── Constants ────────────────────────────────────────────────────────────────
