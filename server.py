@@ -87,20 +87,51 @@ config = Config()
 # ── Koofr API Client ──────────────────────────────────────────────────────────
 
 class KoofrClient:
-    """Thin wrapper around Koofr REST v2 API (Basic Auth)."""
+    """Thin wrapper around Koofr REST v2 API (Token auth).
+
+    Auth flow:
+      1. GET /token with X-Koofr-Email + X-Koofr-Password headers
+      2. Response returns X-Koofr-Token in headers
+      3. All subsequent requests use Authorization: Token <token>
+    """
 
     def __init__(self, base_url: str, email: str, password: str):
         self.base = base_url.rstrip("/")
+        self.email = email
+        self.password = password
         self.session = requests.Session()
-        self.session.auth = (email, password)
         self.session.headers["User-Agent"] = f"{APP_NAME}/{VERSION}"
         self._mount_id: str | None = None
         self._mount_name: str = ""
+        self._token: str | None = None
 
-    def _get(self, path: str, **kwargs) -> dict:
-        resp = self.session.get(f"{self.base}{path}", **kwargs)
+    def _ensure_token(self):
+        """Fetch or refresh the auth token."""
+        if self._token:
+            return
+        resp = self.session.get(
+            f"{self.base}/token",
+            headers={
+                "X-Koofr-Email": self.email,
+                "X-Koofr-Password": self.password,
+            },
+        )
         if resp.status_code == 401:
             sys.exit("ERROR: Koofr auth failed — check your email and app password")
+        resp.raise_for_status()
+        self._token = resp.headers.get("X-Koofr-Token", "")
+        if not self._token:
+            sys.exit("ERROR: Koofr did not return a token")
+        self.session.headers["Authorization"] = f"Token {self._token}"
+
+    def _get(self, path: str, **kwargs) -> dict:
+        self._ensure_token()
+        resp = self.session.get(f"{self.base}{path}", **kwargs)
+        if resp.status_code == 401:
+            # Token might have expired; retry once
+            self._token = None
+            self._ensure_token()
+            resp = self.session.get(f"{self.base}{path}", **kwargs)
         resp.raise_for_status()
         return resp.json()
 
