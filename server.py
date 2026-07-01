@@ -32,8 +32,10 @@ import traceback
 import requests
 from datetime import datetime, timezone
 from functools import wraps
+from urllib.parse import quote
 
-from flask import Flask, g, jsonify, request, render_template, send_from_directory
+from flask import (Flask, Response, g, jsonify, request, render_template,
+                   send_from_directory, stream_with_context)
 
 # ── Constants ────────────────────────────────────────────────────────────────
 
@@ -528,6 +530,61 @@ def api_file():
     if not info:
         return api_error("File not found", 404)
     return jsonify({"ok": True, "file": info})
+
+
+@app.route("/api/file/content")
+def api_file_content():
+    """Proxy file content from Koofr, supporting Range requests for video seeking."""
+    path = request.args.get("path", "")
+    if not path:
+        return api_error("Path param required")
+
+    c = _get_client()
+    mount_id = c.mount_id
+
+    # Look up file in catalog for Content-Type
+    db = get_db()
+    info = db.get_file(path)
+    if not info:
+        return api_error("File not found", 404)
+
+    content_type = info.get("content_type") or "application/octet-stream"
+    filename = info.get("name", "file")
+
+    # Build Koofr content URL and forward Range header
+    url = f"{c.base}{c.content_prefix}/mounts/{mount_id}/files/get"
+    params = {"path": path}
+    headers = {}
+    range_hdr = request.headers.get("Range")
+    if range_hdr:
+        headers["Range"] = range_hdr
+
+    try:
+        upstream = c.session.get(url, params=params, headers=headers, stream=True, timeout=300)
+        upstream.raise_for_status()
+    except requests.HTTPError as e:
+        status = e.response.status_code if e.response is not None else 502
+        return api_error(f"Upstream error: {e}", status)
+
+    # Build streaming Flask response
+    def generate():
+        for chunk in upstream.iter_content(chunk_size=65536):
+            if chunk:
+                yield chunk
+
+    resp = Response(generate(), status=upstream.status_code)
+    resp.headers["Content-Type"] = content_type
+    resp.headers["Content-Disposition"] = f'inline; filename="{quote(filename)}"'
+    resp.headers["Accept-Ranges"] = "bytes"
+    resp.headers["Cache-Control"] = "private, max-age=3600"
+
+    # Forward Content-Range + Content-Length from Koofr (for video seeking)
+    for h in ("Content-Range", "Content-Length"):
+        val = upstream.headers.get(h)
+        if val:
+            resp.headers[h] = val
+
+    return resp
 
 
 @app.route("/api/stats")

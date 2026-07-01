@@ -367,9 +367,9 @@ function renderBrowse(data) {
   // Files
   for (const f of data.files) {
     const icon = fileIcon(f);
-    html.push(`<tr onclick="showFile('${esc(f.path)}')" style="cursor:pointer">
+    html.push(`<tr style="cursor:pointer">
       <td>${icon}</td>
-      <td class="file-name">${esc(f.name)}</td>
+      <td class="file-name"><a href="/api/file/content?path=${encodeURIComponent(f.path)}" target="_blank">${esc(f.name)}</a></td>
       <td class="col-size">${fmtSize(f.size)}</td>
       <td class="col-date">${fmtDate(f.modified)}</td>
       <td class="col-type">${fmtType(f.content_type)}</td>
@@ -427,11 +427,11 @@ function renderSearch(data) {
   for (const f of data.results) {
     const icon = fileIcon(f);
     const dir = f.parent_path || '/';
-    html.push(`<tr onclick="showFile('${esc(f.path)}')" style="cursor:pointer">
+    html.push(`<tr style="cursor:pointer">
       <td>${icon}</td>
       <td class="file-name">
         <span style="color:var(--text2);font-size:11px">${esc(dir)}/</span><br>
-        ${esc(f.name)}
+        <a href="/api/file/content?path=${encodeURIComponent(f.path)}" target="_blank">${esc(f.name)}</a>
       </td>
       <td class="col-size">${fmtSize(f.size)}</td>
       <td class="col-date">${fmtDate(f.modified)}</td>
@@ -522,6 +522,7 @@ async function showFile(path) {
       <tr><td>Type</td><td>${fmtType(f.content_type)}</td></tr>
       <tr><td>Size</td><td>${fmtSize(f.size)}</td></tr>
       <tr><td>Modified</td><td>${fmtDate(f.modified)}</td></tr>
+      <tr><td>Open</td><td><a href="/api/file/content?path=${encodeURIComponent(f.path)}" target="_blank" style="color:var(--accent)">Open in new tab ↗</a></td></tr>
       <tr><td>Path</td><td style="font-size:12px;color:var(--text2)">${esc(f.path)}</td></tr>
       <tr><td>MD5</td><td style="font-size:11px;font-family:monospace">${f.hash || '-'}</td></tr>
     `;
