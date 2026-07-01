@@ -104,12 +104,21 @@ class KoofrClient:
         self._mount_id: str | None = None
         self._mount_name: str = ""
 
-    def _get(self, path: str, **kwargs) -> dict:
+    def _get(self, path: str, max_retries: int = 5, **kwargs) -> dict:
         resp = self.session.get(f"{self.base}{path}", **kwargs)
+        if resp.status_code == 429:
+            for attempt in range(max_retries):
+                wait = 30 * (attempt + 1)
+                print(f"[{APP_NAME}] Rate limited. Waiting {wait}s (attempt {attempt+1}/{max_retries})...")
+                time.sleep(wait)
+                resp = self.session.get(f"{self.base}{path}", **kwargs)
+                if resp.status_code != 429:
+                    break
+            else:
+                sys.exit("ERROR: Koofr rate limit persists after retries — "
+                         "wait a few minutes and try again")
         if resp.status_code == 401:
             sys.exit("ERROR: Koofr auth failed — check your email and app password")
-        if resp.status_code == 429:
-            sys.exit("ERROR: Koofr rate limit hit — wait a minute and retry")
         resp.raise_for_status()
         return resp.json()
 
