@@ -520,6 +520,7 @@ let state = {
   total: 0,
   currentDir: null,
   viewMode: 'table',        // 'table' | 'grid' | 'reel'
+  reelStartPath: null,      // path to open in reel view when switching modes
 };
 // Preview gallery state
 let previewItems = [];       // list of {path, name, size, content_type}
@@ -636,11 +637,11 @@ function renderBrowse(data) {
   let thumbHtml;
   if (prev) {
     const dataIdx = fi;
-    thumbHtml = `<img src="${thumbUrl(f.path, 'sm')}" loading="lazy" data-idx="${dataIdx}" onclick="event.stopPropagation();openPreview(this)" onerror="this.parentElement.innerHTML='<div class=thumb-placeholder>${fileIcon(f)}</div>'">`;
+    thumbHtml = `<img src="${thumbUrl(f.path, 'sm')}" loading="lazy" data-idx="${dataIdx}" onclick="event.stopPropagation();showReelFrom('${esc(f.path)}')" onerror="this.parentElement.innerHTML='<div class=thumb-placeholder>${fileIcon(f)}</div>'">`;
   } else {
     thumbHtml = `<div class="thumb-placeholder">${fileIcon(f)}</div>`;
   }
-  html.push(`<tr style="cursor:pointer" onclick="showFile('${esc(f.path)}')">
+  html.push(`<tr style="cursor:pointer" onclick="event.stopPropagation();showReelFrom('${esc(f.path)}')">`);
     <td class="col-thumb"><div class="thumb-cell">${thumbHtml}</div></td>
     <td class="file-name"><a href="/api/file/content?path=${encodeURIComponent(f.path)}" target="_blank">${esc(f.name)}</a></td>
     <td class="col-size">${fmtSize(f.size)}</td>
@@ -699,11 +700,11 @@ function renderGrid(data) {
     if (ct.startsWith('video/')) {
       thumbContent = `<video src="${fileUrl(f.path)}" muted loop playsinline autoplay preload="metadata" poster="${thumbUrl(f.path, 'sm')}" class="grid-video-thumb" loading="lazy" onerror="this.parentElement.innerHTML='<div class=thumb-placeholder>${fileIcon(f)}</div>'"></video>`;
     } else if (prev) {
-      thumbContent = `<img src="${thumbUrl(f.path, 'sm')}" loading="lazy" onclick="event.stopPropagation();openPreview(this)" data-idx="${fi}" onerror="this.parentElement.innerHTML='<div class=thumb-placeholder>${fileIcon(f)}</div>'">`;
+      thumbContent = `<img src="${thumbUrl(f.path, 'sm')}" loading="lazy" onclick="event.stopPropagation();showReelFrom('${esc(f.path)}')" data-idx="${fi}" onerror="this.parentElement.innerHTML='<div class=thumb-placeholder>${fileIcon(f)}</div>'">`;
     } else {
       thumbContent = `<div class="thumb-placeholder">${fileIcon(f)}</div>`;
     }
-    html.push(`<div class="grid-card" onclick="showFile('${esc(f.path)}')">
+    html.push(`<div class="grid-card" onclick="event.stopPropagation();showReelFrom('${esc(f.path)}')">`);
       <div class="grid-thumb">${thumbContent}</div>
       <div class="grid-info">
         <div class="grid-name">${esc(f.name)}</div>
@@ -724,7 +725,7 @@ function renderGrid(data) {
   renderBreadcrumbs(data.path);
 }
 
-function renderReel(data) {
+function renderReel(data, startPath) {
   state.currentDir = data.current || null;
   state.total = data.subdirs.length + data.files.length;
 
@@ -737,6 +738,14 @@ function renderReel(data) {
     return;
   }
 
+  // Find starting index
+  let startIdx = 0;
+  if (state.reelStartPath) {
+    const found = mediaFiles.findIndex(f => f.path === state.reelStartPath);
+    if (found >= 0) startIdx = found;
+    state.reelStartPath = null;
+  }
+
   const html = [];
   html.push(`<div class="stats-bar">
     <span class="stat-item">📁 <span class="stat-val">${data.subdirs.length}</span> folders</span>
@@ -747,21 +756,21 @@ function renderReel(data) {
   html.push('<div class="reel-view" id="reelView">');
   html.push('<div class="reel-counter" id="reelCounter"></div>');
 
-  // Render only first item with sm thumbnail for instant load
-  const item = mediaFiles[0];
+  // Render starting item with sm thumbnail for instant load
+  const item = mediaFiles[startIdx];
   const ct = item.content_type || '';
   const isVideo = ct.startsWith('video/');
   const itemClass = 'reel-item active';
-  html.push(`<div class="${itemClass}" data-index="0" data-total="${mediaFiles.length}" onclick="event.stopPropagation();showFile('${esc(item.path)}')">`);
+  html.push(`<div class="${itemClass}" data-index="${startIdx}" data-total="${mediaFiles.length}" onclick="event.stopPropagation();showFile('${esc(item.path)}')">`);
   if (isVideo) {
     html.push(`<video src="${fileUrl(item.path)}" muted loop playsinline autoplay preload="auto" poster="${thumbUrl(item.path, 'sm')}" 
               onerror="this.style.display='none';this.nextElementSibling.style.display='block'"
               onclick="event.stopPropagation();openPreview(this)"></video>
                <img src="${fileUrl(item.path)}" style="display:none" 
-                    onclick="event.stopPropagation();openPreview(this)" data-path="${esc(item.path)}" data-idx="0">`);
+                    onclick="event.stopPropagation();openPreview(this)" data-path="${esc(item.path)}" data-idx="${startIdx}">`);
   } else {
     html.push(`<img src="${fileUrl(item.path)}" alt="${esc(item.name)}" 
-              onclick="event.stopPropagation();openPreview(this)" data-path="${esc(item.path)}" data-idx="0">`);
+              onclick="event.stopPropagation();openPreview(this)" data-path="${esc(item.path)}" data-idx="${startIdx}">`);
   }
   html.push(`<div class="reel-info">
     <div class="reel-name">${esc(item.name)}</div>
@@ -898,7 +907,7 @@ function renderSearch(data) {
     const prev = isPreviewable(ct);
     let thumbHtml;
     if (prev) {
-      thumbHtml = `<img src="${thumbUrl(f.path, 'sm')}" loading="lazy" data-idx="${fi}" onclick="event.stopPropagation();openPreview(this)" onerror="this.parentElement.innerHTML='<div class=thumb-placeholder>${fileIcon(f)}</div>'">`;
+      thumbHtml = `<img src="${thumbUrl(f.path, 'sm')}" loading="lazy" data-idx="${fi}" onclick="event.stopPropagation();showReelFrom('${esc(f.path)}')" onerror="this.parentElement.innerHTML='<div class=thumb-placeholder>${fileIcon(f)}</div>'">`;
     } else {
       thumbHtml = `<div class="thumb-placeholder">${fileIcon(f)}</div>`;
     }
@@ -1040,9 +1049,24 @@ function closePreview(e) {
 
 // ── Navigation ──
 
+async function showReelFrom(path) {
+  state.reelStartPath = path;
+  state.viewMode = 'reel';
+  if (state.view === 'browse') {
+    const dir = path.split('/').slice(0, -1).join('/') || '/';
+    state.path = dir;
+    await showBrowse(dir);
+  } else if (state.query) {
+    await goSearch(state.page);
+  }
+}
+
 async function showBrowse(path) {
   state.view = 'browse';
   state.path = path;
+  state.page = 1;
+  state.startPath = null;
+
   document.getElementById('searchInput').value = '';
   document.getElementById('content').innerHTML = '<div class="loading">Loading...</div>';
   document.getElementById('pagination').innerHTML = '';
@@ -1167,6 +1191,7 @@ async function init() {
   // View toggle
   function setViewMode(mode) {
     state.viewMode = mode;
+    state.reelStartPath = null;
     document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === mode));
     if (state.view === 'browse') showBrowse(state.path);
     else if (state.query) goSearch(state.page);
