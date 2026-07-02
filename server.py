@@ -18,10 +18,13 @@ import sys
 import json
 import time
 import math
+import io
+import base64
 import fnmatch
 import sqlite3
 import hashlib
 import pathlib
+import subprocess
 import threading
 from dotenv import load_dotenv
 
@@ -46,6 +49,14 @@ DEFAULT_PORT = 5000
 DEFAULT_HOST = "127.0.0.1"          # safe: only localhost (behind SSH tunnel)
 DEFAULT_REFRESH_INTERVAL = 3600      # 1 hour
 DEFAULT_API_BASE = "https://app.koofr.net"
+
+# Thumbnail generation
+THUMB_DIR = os.path.expanduser("~/.koofr-hermes/thumbnails")
+THUMB_SIZES = {"sm": 300, "lg": 900}
+THUMB_SUBDIRS = {"sm": "small", "lg": "large"}
+
+# Regex to validate paths for thumbnail cache keys
+_PATH_HASH_RE = re.compile(r"^[a-f0-9]{32}\.jpg$")
 
 # Content-type prefixes we recognise for filtering
 MEDIA_TYPES: dict[str, list[str]] = {
@@ -368,6 +379,94 @@ def sanitize_fts5(query: str) -> str:
     return " AND ".join(f'"{t}"*' if len(t) > 2 else f'"{t}"' for t in terms)
 
 
+# ── Thumbnails ──
+
+
+def _thumb_needed(content_type: str) -> bool:
+    """Check if a content type supports thumbnail generation."""
+    return bool(content_type and (content_type.startswith("image/")
+                                  or content_type.startswith("video/")))
+
+
+def _thumb_relpath(path: str, size: str) -> str:
+    """Get relative cache path for a thumbnail. Uses MD5 of the Koofr path."""
+    h = hashlib.md5(path.encode("utf-8")).hexdigest()
+    sub = THUMB_SUBDIRS.get(size, "small")
+    return f"{sub}/{h}.jpg"
+
+
+def _ensure_thumbnail(c: KoofrClient, path: str, content_type: str,
+                       size: str = "sm") -> str | None:
+    """Generate and cache a thumbnail for the given file.
+
+    Returns the absolute filesystem path to the cached JPEG, or None on failure.
+    Generation is skipped if the thumbnail already exists.
+    """
+    rel = _thumb_relpath(path, size)
+    dest = os.path.join(THUMB_DIR, rel)
+    if os.path.exists(dest):
+        return dest
+
+    max_dim = THUMB_SIZES.get(size, 300)
+    mount_id = c.mount_id
+    base = c.base
+    content_prefix = c.content_prefix
+    # Build the Koofr content URL for the file
+    url = (f"{base}{content_prefix}/mounts/{mount_id}/files/get"
+           f"?path={quote(path)}")
+
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+
+    try:
+        if content_type.startswith("image/"):
+            return _thumb_image(c, url, max_dim, dest)
+        elif content_type.startswith("video/"):
+            return _thumb_video(c, url, max_dim, dest)
+    except Exception as e:
+        print(f"[{APP_NAME}] Thumbnail failed for {path}: {e}")
+    return None
+
+
+def _thumb_image(c: KoofrClient, url: str, max_dim: int,
+                 dest: str) -> str | None:
+    """Generate a thumbnail for an image by downloading and resizing."""
+    from PIL import Image
+
+    resp = c.session.get(url, stream=True, timeout=60)
+    resp.raise_for_status()
+    img = Image.open(io.BytesIO(resp.content))
+    img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+    if img.mode in ("RGBA", "LA", "P"):
+        img = img.convert("RGB")
+    img.save(dest, "JPEG", quality=82)
+    return dest
+
+
+def _thumb_video(c: KoofrClient, url: str, max_dim: int,
+                 dest: str) -> str | None:
+    """Extract a video frame for thumbnail using ffmpeg."""
+    auth = base64.b64encode(
+        f"{config.email}:{config.password}".encode()
+    ).decode()
+    ua = f"{APP_NAME}/{VERSION}"
+
+    cmd = [
+        "ffmpeg", "-y",
+        "-headers", f"User-Agent: {ua}\r\nAuthorization: Basic {auth}\r\n",
+        "-ss", "00:00:02",
+        "-i", url,
+        "-vframes", "1",
+        "-vf", (f"scale='min({max_dim},iw)':'min({max_dim},ih)'"
+                ":force_original_aspect_ratio=decrease"),
+        "-q:v", "3",
+        dest,
+    ]
+    subprocess.run(cmd, capture_output=True, timeout=60, check=True)
+    if os.path.exists(dest) and os.path.getsize(dest) > 0:
+        return dest
+    return None
+
+
 # ── Catalog Refresh ──────────────────────────────────────────────────────────
 
 def refresh_catalog(client: KoofrClient, db: Database) -> dict:
@@ -416,7 +515,7 @@ def refresh_catalog(client: KoofrClient, db: Database) -> dict:
 
 # ── Flask App ────────────────────────────────────────────────────────────────
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates'))
 app.config["TEMPLATES_AUTO_RELOAD"] = config.dev
 
 # Make db accessible from routes
@@ -585,6 +684,41 @@ def api_file_content():
             resp.headers[h] = val
 
     return resp
+
+
+@app.route("/api/thumbnail")
+def api_thumbnail():
+    """Generate and serve thumbnail previews for images and videos.
+
+    Query params:
+      path  - Koofr file path (required)
+      size  - 'sm' (200px, default) or 'lg' (900px)
+
+    Thumbnails are generated on first request and cached on disk.
+    """
+    path = request.args.get("path", "")
+    size = request.args.get("size", "sm")
+    if not path:
+        return api_error("Path param required")
+
+    if size not in THUMB_SIZES:
+        size = "sm"
+
+    db = get_db()
+    info = db.get_file(path)
+    if not info:
+        return api_error("File not found", 404)
+
+    content_type = info.get("content_type", "")
+    if not _thumb_needed(content_type):
+        return api_error(f"No thumbnail available for {content_type}", 400)
+
+    c = _get_client()
+    cached = _ensure_thumbnail(c, path, content_type, size)
+    if not cached or not os.path.exists(cached):
+        return api_error("Thumbnail generation failed", 500)
+
+    return send_from_directory(os.path.dirname(cached), os.path.basename(cached))
 
 
 @app.route("/api/stats")

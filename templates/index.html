@@ -132,7 +132,7 @@ a:hover { text-decoration: underline; }
 }
 .file-table th {
   text-align: left;
-  padding: 8px 12px;
+  padding: 8px 8px;
   border-bottom: 1px solid var(--border);
   color: var(--text2);
   font-weight: 500;
@@ -143,11 +143,12 @@ a:hover { text-decoration: underline; }
   user-select: none;
 }
 .file-table td {
-  padding: 6px 12px;
+  padding: 4px 8px;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  vertical-align: middle;
 }
 .file-table tr:hover td { background: var(--surface); }
 .file-table tr.dir-row td { font-weight: 500; }
@@ -156,7 +157,180 @@ a:hover { text-decoration: underline; }
 .dir-name { max-width: 300px; }
 .file-table .col-size { text-align: right; width: 80px; }
 .file-table .col-date { width: 160px; color: var(--text2); }
-.file-table .col-type { width: 120px; color: var(--text2); font-size: 11px; }
+.file-table .col-type { width: 100px; color: var(--text2); font-size: 11px; }
+.file-table .col-thumb { width: 64px; }
+
+/* Thumbnail cell */
+.thumb-cell {
+  width: 56px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--surface2);
+}
+.thumb-cell img {
+  width: 56px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  display: block;
+  cursor: pointer;
+  transition: opacity .2s;
+}
+.thumb-cell img:hover { opacity: 0.8; }
+.thumb-placeholder {
+  width: 56px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: var(--text2);
+  border-radius: 4px;
+  background: var(--surface2);
+}
+.thumb-placeholder.dir {
+  cursor: pointer;
+  transition: background .2s;
+}
+.thumb-placeholder.dir:hover { background: var(--border); }
+
+/* View toggle */
+.view-group { display: flex; gap: 2px; }
+.view-btn {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface2);
+  color: var(--text2);
+  cursor: pointer;
+  font-size: 14px;
+  transition: all .15s;
+}
+.view-btn:hover { border-color: var(--accent); color: var(--text); }
+.view-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* Grid view */
+.grid-view { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; padding: 4px 0; }
+.grid-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color .15s, transform .15s;
+}
+.grid-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.grid-card .grid-thumb {
+  width: 100%; height: 160px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface2);
+  overflow: hidden;
+}
+.grid-card .grid-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.grid-card .grid-thumb .thumb-placeholder { width: 100%; height: 100%; font-size: 32px; background: var(--surface2); }
+.grid-card .grid-info { padding: 8px 10px; }
+.grid-card .grid-name {
+  font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.grid-card .grid-meta { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.grid-card.dir-card { cursor: pointer; }
+.grid-card.dir-card .grid-thumb { background: var(--surface2); }
+
+/* Reel view */
+.reel-view {
+  width: 100%; max-width: 100%;
+  height: 80vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+  touch-action: none;
+  overscroll-behavior: contain;
+}
+.reel-item {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  position: relative;
+}
+.reel-item.active { display: flex; }
+.reel-item img, .reel-item video {
+  max-width: 100%; max-height: 65vh;
+  object-fit: contain;
+  border-radius: 6px;
+  box-shadow: 0 4px 24px rgba(0,0,0,.5);
+}
+.reel-item .reel-icon {
+  font-size: 80px; padding: 60px 0;
+  background: var(--surface2); border-radius: 8px;
+  width: 100%; text-align: center;
+}
+.reel-info {
+  margin-top: 12px; text-align: center;
+  color: var(--text2); font-size: 13px;
+}
+.reel-info .reel-name { color: var(--text); font-size: 14px; }
+.reel-nav {
+  position: fixed; top: 50%; transform: translateY(-50%);
+  background: rgba(255,255,255,.08); border: none; color: var(--text);
+  font-size: 28px; padding: 16px 14px; cursor: pointer; z-index: 150;
+  border-radius: 4px; transition: background .15s;
+}
+.reel-nav:hover { background: rgba(255,255,255,.18); }
+.reel-nav.prev { left: 12px; }
+.reel-nav.next { right: 12px; }
+.reel-counter {
+  position: fixed;
+  top: 12px;
+  right: 16px;
+  background: rgba(0,0,0,.6);
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  z-index: 100;
+}
+.reel-hint {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,.55);
+  color: #fff;
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 13px;
+  z-index: 100;
+  pointer-events: none;
+  animation: fadeHint 3s ease-out forwards;
+}
+@keyframes fadeHint {
+  0% { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  20% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.reel-item {
+  animation: fadeIn .3s ease;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+  position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,.5); color: var(--text2); font-size: 12px;
+  padding: 4px 12px; border-radius: 12px; z-index: 150;
+}
 
 /* Pagination */
 .pagination {
@@ -206,6 +380,56 @@ a:hover { text-decoration: underline; }
 }
 .modal-close:hover { color: var(--text); }
 
+/* Preview lightbox */
+.preview-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,.85);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  flex-direction: column;
+}
+.preview-overlay.open { display: flex; }
+.preview-image {
+  max-width: 90vw;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 4px 24px rgba(0,0,0,.5);
+}
+.preview-info {
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--text2);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.preview-info .pi-name { color: var(--text); }
+.preview-close {
+  position: fixed; top: 16px; right: 20px;
+  background: none; border: none; color: var(--text2); font-size: 32px;
+  cursor: pointer; z-index: 201; line-height: 1;
+}
+.preview-close:hover { color: var(--text); }
+.preview-nav {
+  position: fixed; top: 50%; transform: translateY(-50%);
+  background: rgba(255,255,255,.08);
+  border: none; color: var(--text);
+  font-size: 28px;
+  padding: 16px 12px;
+  cursor: pointer;
+  z-index: 201;
+  border-radius: 4px;
+  transition: background .15s;
+  line-height: 1;
+}
+.preview-nav:hover { background: rgba(255,255,255,.15); }
+.preview-nav.prev { left: 16px; }
+.preview-nav.next { right: 16px; }
+.preview-nav:disabled { opacity: 0.2; cursor: default; }
+
 /* Loading / empty */
 .loading { color: var(--text2); text-align: center; padding: 40px; font-size: 14px; }
 .empty-state { color: var(--text2); text-align: center; padding: 60px 20px; }
@@ -216,8 +440,12 @@ a:hover { text-decoration: underline; }
 @media (max-width: 768px) {
   .header { flex-direction: column; align-items: stretch; }
   .status { margin-left: 0; }
-  .file-table .col-date, .file-table .col-type { display: none; }
+  .file-table .col-date, .file-table .col-type, .file-table .col-size { display: none; }
   .search-bar { flex-direction: column; }
+  .file-table .col-thumb { width: 48px; }
+  .thumb-cell { width: 44px; height: 32px; }
+  .thumb-cell img { width: 44px; height: 32px; }
+  .thumb-placeholder { width: 44px; height: 32px; font-size: 12px; }
 }
 </style>
 </head>
@@ -240,6 +468,11 @@ a:hover { text-decoration: underline; }
     <button class="filter-btn" data-type="document">📄 Document</button>
     <button class="filter-btn" data-type="archive">📦 Archive</button>
     <span class="filter-count" id="filterCount"></span>
+    <div class="view-group">
+      <button class="view-btn active" data-view="table" title="Table">☰</button>
+      <button class="view-btn" data-view="grid" title="Grid">⊞</button>
+      <button class="view-btn" data-view="reel" title="Reel">⤢</button>
+    </div>
   </div>
 </div>
 
@@ -253,12 +486,25 @@ a:hover { text-decoration: underline; }
 
 <div class="pagination" id="pagination"></div>
 
-<!-- File modal -->
+<!-- File detail modal -->
 <div id="fileModal" class="modal-overlay" style="display:none" onclick="closeModal(event)">
   <div class="modal" onclick="event.stopPropagation()">
     <button class="modal-close" onclick="closeModal()">&times;</button>
     <h3 id="modalTitle"></h3>
     <table id="modalBody"></table>
+  </div>
+</div>
+
+<!-- Preview lightbox -->
+<div id="previewOverlay" class="preview-overlay" onclick="closePreview(event)">
+  <button class="preview-close" onclick="closePreview()">&times;</button>
+  <button class="preview-nav prev" id="prevBtn" onclick="previewNav(-1)">&#x276E;</button>
+  <button class="preview-nav next" id="nextBtn" onclick="previewNav(1)">&#x276F;</button>
+  <img id="previewImage" class="preview-image" src="" alt="Preview" style="display:none"><video id="previewVideo" class="preview-image" src="" controls autoplay playsinline style="display:none"></video>
+  <div class="preview-info">
+    <span class="pi-name" id="previewName"></span>
+    <span id="previewMeta"></span>
+    <a id="previewOpenLink" href="#" target="_blank" style="color:var(--accent)">Open ↗</a>
   </div>
 </div>
 
@@ -273,7 +519,11 @@ let state = {
   perPage: 50,
   total: 0,
   currentDir: null,
+  viewMode: 'table',        // 'table' | 'grid' | 'reel'
 };
+// Preview gallery state
+let previewItems = [];       // list of {path, name, size, content_type}
+let previewIndex = -1;
 
 // ── Helpers ──
 function fmtSize(bytes) {
@@ -318,6 +568,10 @@ function fileIcon(file) {
 
 function dirIcon() { return '📁'; }
 
+function isPreviewable(ct) {
+  return ct && (ct.startsWith('image/') || ct.startsWith('video/') || ct.startsWith('application/pdf'));
+}
+
 // ── API calls ──
 async function api(url) {
   const resp = await fetch(url);
@@ -333,6 +587,15 @@ async function apiPost(url) {
   return data;
 }
 
+// ── Thumbnail URL helper ──
+function thumbUrl(path, size) {
+  return '/api/thumbnail?path=' + encodeURIComponent(path) + '&size=' + (size || 'sm');
+}
+
+function fileUrl(path) {
+  return '/api/file/content?path=' + encodeURIComponent(path);
+}
+
 // ── Render functions ──
 
 function renderBrowse(data) {
@@ -345,18 +608,18 @@ function renderBrowse(data) {
   html.push(`<div class="stats-bar">
     <span class="stat-item">📁 <span class="stat-val">${data.subdirs.length}</span> folders</span>
     <span class="stat-item">📄 <span class="stat-val">${data.files.length}</span> files</span>
-    ${data.current ? `<span class="stat-item">📍 ${data.current.name}</span>` : ''}
+    ${data.current ? `<span class="stat-item">📍 ${esc(data.current.name)}</span>` : ''}
   </div>`);
 
   html.push('<table class="file-table"><thead><tr>');
-  html.push('<th style="width:40px"></th><th>Name</th><th class="col-size">Size</th>');
+  html.push('<th class="col-thumb"></th><th>Name</th><th class="col-size">Size</th>');
   html.push('<th class="col-date">Modified</th><th class="col-type">Type</th>');
   html.push('</tr></thead><tbody>');
 
   // Subdirectories first
   for (const dir of data.subdirs) {
     html.push(`<tr class="dir-row" onclick="showBrowse('${esc(dir.path)}')" style="cursor:pointer">
-      <td>${dirIcon()}</td>
+      <td class="col-thumb"><div class="thumb-placeholder dir" onclick="event.stopPropagation();showBrowse('${esc(dir.path)}')">${dirIcon()}</div></td>
       <td class="dir-name"><a href="#">${esc(dir.name || '(root)')}</a></td>
       <td class="col-size">-</td>
       <td class="col-date">${fmtDate(dir.modified)}</td>
@@ -364,16 +627,26 @@ function renderBrowse(data) {
     </tr>`);
   }
 
-  // Files
-  for (const f of data.files) {
-    const icon = fileIcon(f);
-    html.push(`<tr style="cursor:pointer">
-      <td>${icon}</td>
-      <td class="file-name"><a href="/api/file/content?path=${encodeURIComponent(f.path)}" target="_blank">${esc(f.name)}</a></td>
-      <td class="col-size">${fmtSize(f.size)}</td>
-      <td class="col-date">${fmtDate(f.modified)}</td>
-      <td class="col-type">${fmtType(f.content_type)}</td>
-    </tr>`);
+  // Files - build list for preview gallery
+  const fileList = data.files;
+  for (let fi = 0; fi < fileList.length; fi++) {
+  const f = fileList[fi];
+  const ct = f.content_type || '';
+  const prev = isPreviewable(ct);
+  let thumbHtml;
+  if (prev) {
+    const dataIdx = fi;
+    thumbHtml = `<img src="${thumbUrl(f.path, 'sm')}" loading="lazy" data-idx="${dataIdx}" onclick="event.stopPropagation();openPreview(this)" onerror="this.parentElement.innerHTML='<div class=thumb-placeholder>${fileIcon(f)}</div>'">`;
+  } else {
+    thumbHtml = `<div class="thumb-placeholder">${fileIcon(f)}</div>`;
+  }
+  html.push(`<tr style="cursor:pointer" onclick="showFile('${esc(f.path)}')">
+    <td class="col-thumb"><div class="thumb-cell">${thumbHtml}</div></td>
+    <td class="file-name"><a href="/api/file/content?path=${encodeURIComponent(f.path)}" target="_blank">${esc(f.name)}</a></td>
+    <td class="col-size">${fmtSize(f.size)}</td>
+    <td class="col-date">${fmtDate(f.modified)}</td>
+    <td class="col-type">${fmtType(f.content_type)}</td>
+  </tr>`);
   }
 
   html.push('</tbody></table>');
@@ -387,6 +660,200 @@ function renderBrowse(data) {
 
   // breadcrumbs
   renderBreadcrumbs(data.path);
+}
+
+function renderGrid(data) {
+  state.currentDir = data.current || null;
+  state.total = data.subdirs.length + data.files.length;
+
+  const html = [];
+
+  // Stats
+  html.push(`<div class="stats-bar">
+    <span class="stat-item">📁 <span class="stat-val">${data.subdirs.length}</span> folders</span>
+    <span class="stat-item">📄 <span class="stat-val">${data.files.length}</span> files</span>
+    ${data.current ? `<span class="stat-item">📍 ${esc(data.current.name)}</span>` : ''}
+  </div>`);
+
+  html.push('<div class="grid-view">');
+
+  // Subdirectories as cards
+  for (const dir of data.subdirs) {
+    html.push(`<div class="grid-card dir-card" onclick="showBrowse('${esc(dir.path)}')">
+      <div class="grid-thumb">${dirIcon()}</div>
+      <div class="grid-info">
+        <div class="grid-name">${esc(dir.name || '(root)')}</div>
+        <div class="grid-meta">folder</div>
+      </div>
+    </div>`);
+  }
+
+  // Files as cards
+  const fileList = data.files;
+  for (let fi = 0; fi < fileList.length; fi++) {
+    const f = fileList[fi];
+    const ct = f.content_type || '';
+    const prev = isPreviewable(ct);
+    const itemInfo = fi + ':' + (prev ? 'p' : 'n') + ':' + esc(f.path);
+    let thumbContent;
+    if (ct.startsWith('video/')) {
+      thumbContent = `<video src="${fileUrl(f.path)}" muted loop playsinline autoplay preload="metadata" poster="${thumbUrl(f.path, 'sm')}" class="grid-video-thumb" loading="lazy" onerror="this.parentElement.innerHTML='<div class=thumb-placeholder>${fileIcon(f)}</div>'"></video>`;
+    } else if (prev) {
+      thumbContent = `<img src="${thumbUrl(f.path, 'sm')}" loading="lazy" onclick="event.stopPropagation();openPreview(this)" data-idx="${fi}" onerror="this.parentElement.innerHTML='<div class=thumb-placeholder>${fileIcon(f)}</div>'">`;
+    } else {
+      thumbContent = `<div class="thumb-placeholder">${fileIcon(f)}</div>`;
+    }
+    html.push(`<div class="grid-card" onclick="showFile('${esc(f.path)}')">
+      <div class="grid-thumb">${thumbContent}</div>
+      <div class="grid-info">
+        <div class="grid-name">${esc(f.name)}</div>
+        <div class="grid-meta">${fmtType(ct)} · ${fmtSize(f.size)}</div>
+      </div>
+    </div>`);
+  }
+
+  html.push('</div>');
+  if (data.subdirs.length === 0 && data.files.length === 0) {
+    html.push('<div class="empty-state"><h3>Empty directory</h3><p>Nothing here yet</p></div>');
+  }
+
+  document.getElementById('content').innerHTML = html.join('');
+  document.getElementById('pagination').innerHTML = '';
+  document.getElementById('filterCount').textContent = '';
+
+  renderBreadcrumbs(data.path);
+}
+
+function renderReel(data) {
+  state.currentDir = data.current || null;
+  state.total = data.subdirs.length + data.files.length;
+
+  // Only media files, no folders
+  const mediaFiles = data.files.filter(f => isPreviewable(f.content_type || ''));
+  if (mediaFiles.length === 0) {
+    document.getElementById('content').innerHTML = '<div class="empty-state"><h3>No media</h3><p>No images or videos in this folder</p></div>';
+    document.getElementById('pagination').innerHTML = '';
+    renderBreadcrumbs(data.path);
+    return;
+  }
+
+  const html = [];
+  html.push(`<div class="stats-bar">
+    <span class="stat-item">📁 <span class="stat-val">${data.subdirs.length}</span> folders</span>
+    <span class="stat-item">🎬 <span class="stat-val">${mediaFiles.length}</span> media</span>
+    ${data.current ? `<span class="stat-item">📍 ${esc(data.current.name)}</span>` : ''}
+  </div>`);
+
+  html.push('<div class="reel-view" id="reelView">');
+  html.push('<div class="reel-counter" id="reelCounter"></div>');
+
+  // Render only first item with sm thumbnail for instant load
+  const item = mediaFiles[0];
+  const ct = item.content_type || '';
+  const isVideo = ct.startsWith('video/');
+  const itemClass = 'reel-item active';
+  html.push(`<div class="${itemClass}" data-index="0" data-total="${mediaFiles.length}" onclick="event.stopPropagation();showFile('${esc(item.path)}')">`);
+  if (isVideo) {
+    html.push(`<video src="${fileUrl(item.path)}" muted loop playsinline autoplay preload="auto" poster="${thumbUrl(item.path, 'sm')}" 
+              onerror="this.style.display='none';this.nextElementSibling.style.display='block'"
+              onclick="event.stopPropagation();openPreview(this)"></video>
+               <img src="${fileUrl(item.path)}" style="display:none" 
+                    onclick="event.stopPropagation();openPreview(this)" data-path="${esc(item.path)}" data-idx="0">`);
+  } else {
+    html.push(`<img src="${fileUrl(item.path)}" alt="${esc(item.name)}" 
+              onclick="event.stopPropagation();openPreview(this)" data-path="${esc(item.path)}" data-idx="0">`);
+  }
+  html.push(`<div class="reel-info">
+    <div class="reel-name">${esc(item.name)}</div>
+    <div>${fmtType(ct)} · ${fmtSize(item.size)}</div>
+  </div>
+</div>`);
+
+  html.push('<div class="reel-hint">↑↓ swipe or use arrow keys</div>');
+  html.push('</div>');
+
+  document.getElementById('content').innerHTML = html.join('');
+  document.getElementById('pagination').innerHTML = '';
+  renderBreadcrumbs(data.path);
+  updateReelCounter();
+
+  // Autoplay initial video
+  const firstVid = document.querySelector('#reelView video');
+  if (firstVid) {
+    const doPlay = () => { firstVid.currentTime = 0; firstVid.play().catch(()=>{}); };
+    if (firstVid.readyState >= 2) doPlay();
+    else firstVid.addEventListener('canplay', doPlay, { once: true });
+  }
+
+  // Store media list for swipe nav
+  state._reelMedia = mediaFiles;
+}
+
+// Reel navigation
+function reelNav(dir) {
+  const media = state._reelMedia;
+  if (!media || media.length <= 1) return;
+
+  const current = document.querySelector('.reel-item.active');
+  if (!current) return;
+
+  const curIdx = parseInt(current.dataset.index || '0', 10);
+  const nextIdx = curIdx + dir;
+  if (nextIdx < 0 || nextIdx >= media.length) return;
+
+  // Pause video in current
+  const curVid = current.querySelector('video');
+  if (curVid) { curVid.pause(); }
+
+  // Build new item HTML
+  const item = media[nextIdx];
+  const ct = item.content_type || '';
+  const isVideo = ct.startsWith('video/');
+  let mediaHtml;
+  if (isVideo) {
+    mediaHtml = `<video src="${fileUrl(item.path)}" muted loop playsinline preload="auto" poster="${thumbUrl(item.path, 'sm')}"
+                 onerror="this.style.display='none';this.nextElementSibling.style.display='block'"
+                 onclick="event.stopPropagation();openPreview(this)"></video>
+                 <img src="${fileUrl(item.path)}" style="display:none"
+                      onclick="event.stopPropagation();openPreview(this)" data-path="${esc(item.path)}" data-idx="${nextIdx}">`;
+  } else {
+    mediaHtml = `<img src="${fileUrl(item.path)}" alt="${esc(item.name)}"
+                 onclick="event.stopPropagation();openPreview(this)" data-path="${esc(item.path)}" data-idx="${nextIdx}">`;
+  }
+
+  current.innerHTML = mediaHtml + `<div class="reel-info">
+    <div class="reel-name">${esc(item.name)}</div>
+    <div>${fmtType(ct)} · ${fmtSize(item.size)}</div>
+  </div>`;
+  current.dataset.index = nextIdx;
+  current.onclick = `event.stopPropagation();showFile('${esc(item.path)}')`;
+
+  // Play video if present (wait for canplay)
+  const newVid = current.querySelector('video');
+  if (newVid) {
+    const doPlay = () => { newVid.currentTime = 0; newVid.play().catch(()=>{}); };
+    if (newVid.readyState >= 2) doPlay();
+    else newVid.addEventListener('canplay', doPlay, { once: true });
+  }
+
+  updateReelCounter();
+  
+  // Preload adjacent items
+  preloadReelItem(nextIdx - 1);
+  preloadReelItem(nextIdx + 1);
+}
+
+function preloadReelItem(idx) {
+  // Could add link preload here in future
+}
+
+function updateReelCounter() {
+  const active = document.querySelector('.reel-item.active');
+  const counter = document.getElementById('reelCounter');
+  if (!active || !counter) return;
+  const idx = parseInt(active.dataset.index || '0', 10) + 1;
+  const total = parseInt(active.dataset.total || '0', 10);
+  if (total > 0) counter.textContent = idx + ' / ' + total;
 }
 
 function renderBreadcrumbs(path) {
@@ -406,6 +873,7 @@ function renderSearch(data) {
     `${data.total} result${data.total !== 1 ? 's' : ''}`;
 
   const html = [];
+  const fileList = data.results;
 
   if (data.total === 0) {
     html.push('<div class="empty-state"><h3>No results</h3>');
@@ -420,15 +888,23 @@ function renderSearch(data) {
   </div>`);
 
   html.push('<table class="file-table"><thead><tr>');
-  html.push('<th style="width:40px"></th><th>Name</th><th class="col-size">Size</th>');
+  html.push('<th class="col-thumb"></th><th>Name</th><th class="col-size">Size</th>');
   html.push('<th class="col-date">Modified</th><th class="col-type">Type</th>');
   html.push('</tr></thead><tbody>');
 
-  for (const f of data.results) {
-    const icon = fileIcon(f);
+  for (let fi = 0; fi < fileList.length; fi++) {
+    const f = fileList[fi];
+    const ct = f.content_type || '';
+    const prev = isPreviewable(ct);
+    let thumbHtml;
+    if (prev) {
+      thumbHtml = `<img src="${thumbUrl(f.path, 'sm')}" loading="lazy" data-idx="${fi}" onclick="event.stopPropagation();openPreview(this)" onerror="this.parentElement.innerHTML='<div class=thumb-placeholder>${fileIcon(f)}</div>'">`;
+    } else {
+      thumbHtml = `<div class="thumb-placeholder">${fileIcon(f)}</div>`;
+    }
     const dir = f.parent_path || '/';
-    html.push(`<tr style="cursor:pointer">
-      <td>${icon}</td>
+    html.push(`<tr style="cursor:pointer" onclick="showFile('${esc(f.path)}')">
+      <td class="col-thumb"><div class="thumb-cell">${thumbHtml}</div></td>
       <td class="file-name">
         <span style="color:var(--text2);font-size:11px">${esc(dir)}/</span><br>
         <a href="/api/file/content?path=${encodeURIComponent(f.path)}" target="_blank">${esc(f.name)}</a>
@@ -465,6 +941,103 @@ function renderPagination(data) {
   document.getElementById('pagination').innerHTML = html;
 }
 
+// ── Preview Lightbox ──
+
+function buildPreviewList() {
+  // Collect all previewable files from the current view in DOM order
+  const imgs = document.querySelectorAll('.thumb-cell img[data-idx]');
+  if (imgs.length > 0) {
+    // Table view
+    return Array.from(imgs).map(img => {
+      const row = img.closest('tr');
+      const link = row ? row.querySelector('td.file-name a') : null;
+      const href = link ? link.getAttribute('href') : '';
+      const path = decodeURIComponent((href || '').split('path=')[1] || '');
+      const name = link ? link.textContent : '';
+      return { path, name };
+    });
+  }
+  // Grid view: collect from grid-card onclick attributes
+  const gridCards = document.querySelectorAll('.grid-card');
+  if (gridCards.length > 0) {
+    const items = [];
+    gridCards.forEach(card => {
+      const onclick = card.getAttribute('onclick') || '';
+      const match = onclick.match(/showFile\('([^']+)'\)/);
+      if (match) {
+        const path = decodeURIComponent(match[1]);
+        const nameEl = card.querySelector('.grid-name');
+        const name = nameEl ? nameEl.textContent : path.split('/').pop();
+        items.push({ path, name });
+      }
+    });
+    return items;
+  }
+  // Reel view: collect from reel-item media elements
+  const reelItems = document.querySelectorAll('.reel-item');
+  const items = [];
+  reelItems.forEach(el => {
+    const media = el.querySelector('img[data-idx], video[data-idx]');
+    if (media) {
+      const path = decodeURIComponent(media.getAttribute('data-path') || '');
+      const nameEl = el.querySelector('.reel-name');
+      const name = nameEl ? nameEl.textContent : '';
+      if (path) items.push({ path, name });
+    }
+  });
+  return items;
+}
+
+function openPreview(imgEl) {
+  previewItems = buildPreviewList();
+  if (previewItems.length === 0) return;
+
+  const idxAttr = imgEl.getAttribute('data-idx');
+  previewIndex = idxAttr !== null ? parseInt(idxAttr, 10) : 0;
+  if (isNaN(previewIndex) || previewIndex >= previewItems.length) previewIndex = 0;
+
+  showPreviewItem(previewIndex);
+}
+
+function showPreviewItem(index) {
+  if (index < 0 || index >= previewItems.length) return;
+  previewIndex = index;
+  const item = previewItems[index];
+
+  const overlay = document.getElementById('previewOverlay');
+  const img = document.getElementById('previewImage');
+  const name = document.getElementById('previewName');
+  const link = document.getElementById('previewOpenLink');
+
+  // Show large thumbnail
+  img.src = thumbUrl(item.path, 'lg');
+  img.alt = item.name;
+  name.textContent = item.name;
+  link.href = '/api/file/content?path=' + encodeURIComponent(item.path);
+
+  document.getElementById('previewMeta').textContent =
+    `${index + 1} / ${previewItems.length}`;
+
+  document.getElementById('prevBtn').disabled = index <= 0;
+  document.getElementById('nextBtn').disabled = index >= previewItems.length - 1;
+
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function previewNav(direction) {
+  const idx = previewIndex + direction;
+  if (idx >= 0 && idx < previewItems.length) {
+    showPreviewItem(idx);
+  }
+}
+
+function closePreview(e) {
+  if (e && e.target !== e.currentTarget) return; // only on overlay click
+  document.getElementById('previewOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
 // ── Navigation ──
 
 async function showBrowse(path) {
@@ -477,7 +1050,9 @@ async function showBrowse(path) {
 
   try {
     const data = await api(`/api/browse?path=${encodeURIComponent(path)}`);
-    renderBrowse(data);
+    if (state.viewMode === 'grid') renderGrid(data);
+    else if (state.viewMode === 'reel') renderReel(data);
+    else renderBrowse(data);
   } catch (e) {
     document.getElementById('content').innerHTML =
       `<div class="error-state">Error: ${esc(e.message)}</div>`;
@@ -542,6 +1117,15 @@ function esc(s) {
   return d.innerHTML;
 }
 
+// ── Keyboard nav for preview ──
+document.addEventListener('keydown', (e) => {
+  const overlay = document.getElementById('previewOverlay');
+  if (!overlay.classList.contains('open')) return;
+  if (e.key === 'Escape') closePreview();
+  if (e.key === 'ArrowLeft') previewNav(-1);
+  if (e.key === 'ArrowRight') previewNav(1);
+});
+
 // ── Initialise ──
 
 async function init() {
@@ -575,11 +1159,60 @@ async function init() {
       if (state.view === 'search' && state.query) {
         goSearch(1);
       } else if (state.view === 'browse') {
-        // Refresh browse if we had one
         showBrowse(state.path);
       }
     });
   });
+
+  // View toggle
+  function setViewMode(mode) {
+    state.viewMode = mode;
+    document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === mode));
+    if (state.view === 'browse') showBrowse(state.path);
+    else if (state.query) goSearch(state.page);
+  }
+  document.querySelectorAll('.view-btn').forEach(btn => {
+    btn.addEventListener('click', () => setViewMode(btn.dataset.view));
+  });
+
+  // Reel keyboard nav
+  document.addEventListener('keydown', (e) => {
+    if (state.viewMode !== 'reel') return;
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { reelNav(-1); e.preventDefault(); }
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { reelNav(1); e.preventDefault(); }
+  });
+
+  // Reel mouse wheel
+  let _reelWheelT = 0;
+  document.addEventListener('wheel', (e) => {
+    if (state.viewMode !== 'reel') return;
+    if (document.getElementById('reelView') === null) return;
+    const now = Date.now();
+    if (now - _reelWheelT < 400) return;
+    const dir = e.deltaY > 0 ? 1 : -1;
+    if (Math.abs(e.deltaY) < 20) return;
+    _reelWheelT = now;
+    reelNav(dir);
+    e.preventDefault();
+  }, { passive: false });
+
+  // Reel pointer swipe
+  let _reelPtr = null;
+  const onReelPtrDown = (e) => {
+    if (state.viewMode !== 'reel') return;
+    _reelPtr = { y: e.clientY, t: Date.now() };
+  };
+  const onReelPtrUp = (e) => {
+    if (state.viewMode !== 'reel' || !_reelPtr) return;
+    const dy = e.clientY - _reelPtr.y;
+    const dt = Date.now() - _reelPtr.t;
+    _reelPtr = null;
+    if (Math.abs(dy) > 40 && dt < 500) {
+      reelNav(dy < 0 ? 1 : -1);
+    }
+  };
+  document.addEventListener('pointerdown', onReelPtrDown);
+  document.addEventListener('pointerup', onReelPtrUp);
 
   // Load browse view
   showBrowse('/');
