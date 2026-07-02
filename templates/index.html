@@ -949,13 +949,13 @@ function renderReel(data, startPath) {
   const itemClass = 'reel-item active';
   html.push(`<div class="${itemClass}" data-index="${startIdx}" data-total="${mediaFiles.length}" onclick="event.stopPropagation();showFile('${esc(item.path)}')">`);
   if (isVideo) {
-    html.push(`<video src="${fileUrl(item.path)}" muted loop playsinline autoplay preload="auto" poster="${thumbUrl(item.path, 'sm')}" 
+    html.push(`<video src="${fileUrl(item.path)}" muted loop playsinline autoplay preload="metadata" poster="${thumbUrl(item.path, 'sm')}"
               onerror="this.style.display='none';this.nextElementSibling.style.display='block'"
               onclick="event.stopPropagation();openPreview(this)"></video>
-               <img src="${fileUrl(item.path)}" style="display:none" 
+               <img src="${fileUrl(item.path)}" style="display:none"
                     onclick="event.stopPropagation();openPreview(this)" data-path="${esc(item.path)}" data-idx="${startIdx}">`);
   } else {
-    html.push(`<img src="${fileUrl(item.path)}" alt="${esc(item.name)}" 
+    html.push(`<img src="${thumbUrl(item.path, 'sm')}" alt="${esc(item.name)}" loading="lazy"
               onclick="event.stopPropagation();openPreview(this)" data-path="${esc(item.path)}" data-idx="${startIdx}">`);
   }
   html.push(`<div class="reel-info">
@@ -1006,13 +1006,13 @@ function reelNav(dir) {
   const isVideo = ct.startsWith('video/');
   let mediaHtml;
   if (isVideo) {
-    mediaHtml = `<video src="${fileUrl(item.path)}" muted loop playsinline preload="auto" poster="${thumbUrl(item.path, 'sm')}"
+    mediaHtml = `<video src="${fileUrl(item.path)}" muted loop playsinline preload="metadata" poster="${thumbUrl(item.path, 'sm')}"
                  onerror="this.style.display='none';this.nextElementSibling.style.display='block'"
                  onclick="event.stopPropagation();openPreview(this)"></video>
                  <img src="${fileUrl(item.path)}" style="display:none"
                       onclick="event.stopPropagation();openPreview(this)" data-path="${esc(item.path)}" data-idx="${nextIdx}">`;
   } else {
-    mediaHtml = `<img src="${fileUrl(item.path)}" alt="${esc(item.name)}"
+    mediaHtml = `<img src="${thumbUrl(item.path, 'sm')}" alt="${esc(item.name)}" loading="lazy"
                  onclick="event.stopPropagation();openPreview(this)" data-path="${esc(item.path)}" data-idx="${nextIdx}">`;
   }
 
@@ -1236,10 +1236,12 @@ function closePreview(e) {
 // ── Navigation ──
 
 async function showReelFrom(path) {
+  if (!isPreviewable('')) return; // only actionable from previewable items
   state.reelStartPath = path;
   state.viewMode = 'reel';
   if (state.view === 'browse') {
-    const dir = path.split('/').slice(0, -1).join('/') || '/';
+    let dir = path.split('/').slice(0, -1).join('/');
+    if (!dir) dir = '/';
     state.path = dir;
     await showBrowse(dir);
   } else if (state.query) {
