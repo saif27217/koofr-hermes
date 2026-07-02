@@ -827,7 +827,7 @@ function renderBrowse(data) {
   } else {
     thumbHtml = `<div class="thumb-placeholder">${fileIcon(f)}</div>`;
   }
-  html.push(`<tr style="cursor:pointer" onclick="event.stopPropagation();showReelFrom('${esc(f.path)}')">`);
+  html.push(`<tr style="cursor:pointer" onclick="event.stopPropagation();showReelFrom('${esc(f.path)}')">
     <td class="col-thumb"><div class="thumb-cell">${thumbHtml}</div></td>
     <td class="file-name"><a href="/api/file/content?path=${encodeURIComponent(f.path)}" target="_blank">${esc(f.name)}</a></td>
     <td class="col-size">${fmtSize(f.size)}</td>
@@ -890,7 +890,7 @@ function renderGrid(data) {
     } else {
       thumbContent = `<div class="thumb-placeholder">${fileIcon(f)}</div>`;
     }
-    html.push(`<div class="grid-card" onclick="event.stopPropagation();showReelFrom('${esc(f.path)}')">`);
+    html.push(`<div class="grid-card" onclick="event.stopPropagation();showReelFrom('${esc(f.path)}')">
       <div class="grid-thumb">${thumbContent}</div>
       <div class="grid-info">
         <div class="grid-name">${esc(f.name)}</div>
